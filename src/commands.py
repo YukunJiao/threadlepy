@@ -30,7 +30,6 @@ def inventory():
 def info(structure: Union[str, ThreadleStruct]):
     cmd = "info"
     assign = None
-    structure = structure.name if isinstance(structure, ThreadleStruct) else structure
     return call(cmd, locals(), assign=assign)
 
 # ============================================
@@ -41,14 +40,13 @@ def add_aff(network: ThreadleName, layername: str, nodeid: NodeId, hypername: st
             addmissingnode: bool = True, addmissingaffiliation: bool = True):
     cmd = "addaff"
     assign = None
-    network = network.name if isinstance(network, ThreadleStruct) else network
     return call(cmd, locals(), assign=assign)
 
 
 def remove_aff(network: ThreadleName, layername: str, nodeid: NodeId, hypername: str):
     cmd = "removeaff"
     assign = None
-    network = network.name if isinstance(network, ThreadleStruct) else network
+    
     return call(cmd, locals(), assign=assign)
 
 
@@ -56,28 +54,24 @@ def add_edge(network: ThreadleName, layername: str, node1id: NodeId, node2id: No
              value: int = 1, addmissingnodes: bool = True):
     cmd = "addedge"
     assign = None
-    network = network.name if isinstance(network, ThreadleStruct) else network
     return call(cmd, locals(), assign=assign)
 
 
 def remove_edge(network: ThreadleName, layername: str, node1id: NodeId, node2id: NodeId):
     cmd = "removeedge"
     assign = None
-    network = network.name if isinstance(network, ThreadleStruct) else network
     return call(cmd, locals(), assign=assign)
 
 
 def check_edge(network: ThreadleName, layername: str, node1id: NodeId, node2id: NodeId):
     cmd = "checkedge"
     assign = None
-    network = network.name if isinstance(network, ThreadleStruct) else network
     return call(cmd, locals(), assign=assign)
 
 
 def clear_layer(network: ThreadleName, layername: str):
     cmd = "clearlayer"
     assign = None
-    network = network.name if isinstance(network, ThreadleStruct) else network
     return call(cmd, locals(), assign=assign)
 
 
@@ -89,7 +83,6 @@ def add_hyper(network: ThreadleName, layername: str, hypername: str,
     """
     cmd = "addhyper"
     assign = None
-    network = network.name if isinstance(network, ThreadleStruct) else network
     nodes = "" if nodes is None else ";".join(map(str, nodes))
     return call(cmd, locals(), assign=assign)
 
@@ -97,7 +90,6 @@ def add_hyper(network: ThreadleName, layername: str, hypername: str,
 def remove_hyper(network: ThreadleName, layername: str, hypername: str):
     cmd = "removehyper"
     assign = None
-    network = network.name if isinstance(network, ThreadleStruct) else network
     return call(cmd, locals(), assign=assign)
 
 
@@ -110,51 +102,44 @@ def add_layer(network: ThreadleName, layername: str, mode: int,
         raise ValueError('valuetype must be "binary" or "valued".')
     cmd = "addlayer"
     assign = None
-    network = network.name if isinstance(network, ThreadleStruct) else network
     return call(cmd, locals(), assign=assign)
 
 def remove_layer(network: Union[str, ThreadleStruct], layername: str):
     cmd = "removelayer"
     assign = None
-    network = network.name if isinstance(network, ThreadleStruct) else network
     return call(cmd, locals(), assign=assign)
 
 # ============================================
 # Nodeset / Node ops
 # ============================================
 
-def add_node(structure: ThreadleName, id: str):
+def add_node(structure: ThreadleName, id: NodeId):
     cmd = "addnode"
     assign = None
-    structure = structure.name if isinstance(structure, ThreadleStruct) else structure
     return call(cmd, locals(), assign=assign)
 
 
 def remove_node(structure: ThreadleName, nodeid: NodeId):
     cmd = "removenode"
     assign = None
-    structure = structure.name if isinstance(structure, ThreadleStruct) else structure
     return call(cmd, locals(), assign=assign)
 
 
 def get_nbr_nodes(structure: ThreadleName):
     cmd = "getnbrnodes"
     assign = None
-    structure = structure.name if isinstance(structure, ThreadleStruct) else structure
     return call(cmd, locals(), assign=assign)
 
 
 def get_nodeid_by_index(structure: ThreadleName, index: int):
     cmd = "getnodeidbyindex"
     assign = None
-    structure = structure.name if isinstance(structure, ThreadleStruct) else structure
     return call(cmd, locals(), assign=assign)
 
 
 def get_random_node(structure: ThreadleName):
     cmd = "getrandomnode"
     assign = None
-    structure = structure.name if isinstance(structure, ThreadleStruct) else structure
     return call(cmd, locals(), assign=assign)
 
 
@@ -170,35 +155,30 @@ def define_attr(structure: ThreadleName, attrname: str, attrtype: str = "int"):
         raise ValueError('attrtype must be one of: "int", "char", "float", "bool".')
     cmd = "defineattr"
     assign = None
-    structure = structure.name if isinstance(structure, ThreadleStruct) else structure
     return call(cmd, locals(), assign=assign)
 
 
 def undefine_attr(structure: ThreadleName, attrname: str):
     cmd = "undefineattr"
     assign = None
-    structure = structure.name if isinstance(structure, ThreadleStruct) else structure
     return call(cmd, locals(), assign=assign)
 
 
 def get_attr(structure: ThreadleName, nodeid: NodeId, attrname: str):
     cmd = "getattr"
     assign = None
-    structure = structure.name if isinstance(structure, ThreadleStruct) else structure
     return call(cmd, locals(), assign=assign)
 
 
 def set_attr(structure: ThreadleName, nodeid: NodeId, attrname: str, attrvalue: Any):
     cmd = "setattr"
     assign = None
-    structure = structure.name if isinstance(structure, ThreadleStruct) else structure
     return call(cmd, locals(), assign=assign)
 
 
 def remove_attr(structure: ThreadleName, nodeid: NodeId, attrname: str):
     cmd = "removeattr"
     assign = None
-    structure = structure.name if isinstance(structure, ThreadleStruct) else structure
     return call(cmd, locals(), assign=assign)
 
 
@@ -209,7 +189,6 @@ def remove_attr(structure: ThreadleName, nodeid: NodeId, attrname: str):
 def get_edge(network: ThreadleName, layername: str, node1id: NodeId, node2id: NodeId):
     cmd = "getedge"
     assign = None
-    network = network.name if isinstance(network, ThreadleStruct) else network
     return call(cmd, locals(), assign=assign)
 
 
@@ -225,7 +204,6 @@ def get_node_alters(network: ThreadleName, nodeid: NodeId, layername: str = "",
         raise ValueError('direction must be one of: "both", "in", "out".')
     cmd = "getnodealters"
     assign = None
-    network = network.name if isinstance(network, ThreadleStruct) else network
     layername = "" if (layername is None or layername == "") else layername
     return call(cmd, locals(), assign=assign)
 
@@ -236,14 +214,12 @@ def get_random_alter(network: ThreadleName, nodeid: NodeId, layername: str = "",
         raise ValueError('direction must be one of: "both", "in", "out".')
     cmd = "getrandomalter"
     assign = None
-    network = network.name if isinstance(network, ThreadleStruct) else network
     return call(cmd, locals(), assign=assign)
 
 
 def shortest_path(network: ThreadleName, node1id: NodeId, node2id: NodeId, layername: str = ""):
     cmd = "shortestpath"
     assign = None
-    network = network.name if isinstance(network, ThreadleStruct) else network
     layername = "" if layername is None else layername
     return call(cmd, locals(), assign=assign)
 
@@ -257,14 +233,12 @@ def degree(network: ThreadleName, layername: str, attrname: Optional[str] = None
         raise ValueError('direction must be one of: "in", "out", "both".')
     cmd = "degree"
     assign = None
-    network = network.name if isinstance(network, ThreadleStruct) else network
     return call(cmd, locals(), assign=assign)
 
 
 def density(network: ThreadleName, layername: str):
     cmd = "density"
     assign = None
-    network = network.name if isinstance(network, ThreadleStruct) else network
     return call(cmd, locals(), assign=assign)
 
 
@@ -279,20 +253,17 @@ def dichotomize(network: ThreadleName, layername: str,
         raise ValueError('cond must be one of: ge, eq, ne, gt, lt, le, isnull, notnull')
     cmd = "dichotomize"
     assign = None
-    network = network.name if isinstance(network, ThreadleStruct) else network
     return call(cmd, locals(), assign=assign)
 
 
 def components(network: ThreadleName, layname: str, attrname: str):
     cmd = "components"
     assign = None
-    network = network.name if isinstance(network, ThreadleStruct) else network
     return call(cmd, locals(), assign=assign)
 
 def symmetrize(network: Union[str, ThreadleStruct], layername: str, newlayername: Optional[str] = None):
     cmd = "symmetrize"
     assign = None
-    network = network.name if isinstance(network, ThreadleStruct) else network
     return call(cmd, locals(), assign=assign)
 
 # ============================================
@@ -310,7 +281,6 @@ def create_nodeset(name: str, createnodes: int = 0):
 def create_network(nodeset: ThreadleName, name: str):
     cmd = "createnetwork"
     assign = name
-    nodeset = nodeset.name if isinstance(nodeset, ThreadleStruct) else nodeset
     call(cmd, locals(), assign=assign)
     return ThreadleStruct(name=name)
 
@@ -337,7 +307,6 @@ def save_file(structure: ThreadleName, file: str = ""):
     """
     cmd = "savefile"
     assign = None
-    structure = structure.name if isinstance(structure, ThreadleStruct) else structure
     if not file:
         file = f"{structure}.tsv"
     return call(cmd, locals(), assign=assign)
@@ -352,14 +321,12 @@ def import_layer(network: ThreadleName, layername: str, file: str,
         raise ValueError('format must be "edgelist" or "matrix".')
     cmd = "importlayer"
     assign = None
-    network = network.name if isinstance(network, ThreadleStruct) else network
     return call(cmd, locals(), assign=assign)
 
 
 def delete(structure: ThreadleName):
     cmd = "delete"
     assign = None
-    structure = structure.name if isinstance(structure, ThreadleStruct) else structure
     return call(cmd, locals(), assign=assign)
 
 
@@ -376,7 +343,6 @@ def delete_all():
 def filter_nodeset(name: str, nodeset: ThreadleName, attrname: str, cond: str, attrvalue: Any):
     cmd = "filter"
     assign = name
-    nodeset = nodeset.name if isinstance(nodeset, ThreadleStruct) else nodeset
     call(cmd, locals(), assign=assign)
     return ThreadleStruct(name=name)
 
@@ -384,8 +350,6 @@ def filter_nodeset(name: str, nodeset: ThreadleName, attrname: str, cond: str, a
 def subnet(name: str, network: ThreadleName, nodeset: ThreadleName):
     cmd = "subnet"
     assign = name
-    network = network.name if isinstance(network, ThreadleStruct) else network
-    nodeset = nodeset.name if isinstance(nodeset, ThreadleStruct) else nodeset
     call(cmd, locals(), assign=assign)
     return ThreadleStruct(name=name)
 
@@ -399,7 +363,6 @@ def generate(network: ThreadleName, layername: str, type: str,
              beta: Optional[float] = None, m: Optional[int] = None):
     cmd = "generate"
     assign = None
-    network = network.name if isinstance(network, ThreadleStruct) else network
     return call(cmd, locals(), assign=assign)
 
 
