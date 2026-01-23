@@ -1,0 +1,10 @@
+LICENSE
+README.md
+pyproject.toml
+src/threadlepy/__init__.py
+src/threadlepy/client.py
+src/threadlepy/commands.py
+src/threadlepy.egg-info/PKG-INFO
+src/threadlepy.egg-info/SOURCES.txt
+src/threadlepy.egg-info/dependency_links.txt
+src/threadlepy.egg-info/top_level.txt
