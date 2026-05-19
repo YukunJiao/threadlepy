@@ -48,6 +48,7 @@ def configure(
         default_timeout = float(timeout)
 
 def stop():
+    """Stop the running Threadle subprocess, if one is active."""
     global proc
     if proc and proc.poll() is None:
         print("threadle stopped")
@@ -56,6 +57,7 @@ def stop():
     proc = None
 
 def start(path: str | None = None) -> subprocess.Popen[str]:
+    """Start the Threadle CLI JSON subprocess and return the process handle."""
     global proc
     if path is None or not str(path).strip():
         exe = shutil.which("threadle")
@@ -112,9 +114,11 @@ def session(path: str | None = None, **config: Any) -> Iterator[subprocess.Popen
         stop()
 
 def collect_args(**kwargs):
+    """Return keyword arguments whose values are not ``None``."""
     return {k: v for k, v in kwargs.items() if v is not None}
 
 def json_cmd(command: str, args: Optional[Dict[str, Any]] = None, assign: Optional[str] = None) -> str:
+    """Build a JSON command payload for the Threadle CLI."""
     dto = {
         "Assign": assign,
         "Command": str(command),
@@ -123,6 +127,7 @@ def json_cmd(command: str, args: Optional[Dict[str, Any]] = None, assign: Option
     return json.dumps(dto, ensure_ascii=False)
 
 def send_command(cmd_json: str, timeout: Optional[float] = None) -> Dict[str, Any]:
+    """Send a JSON command to Threadle and wait for a JSON response."""
     global proc
     if proc is None or proc.poll() is not None:
         raise RuntimeError("Threadle process is not running.")
@@ -177,6 +182,7 @@ def send_command(cmd_json: str, timeout: Optional[float] = None) -> Dict[str, An
     raise TimeoutError(hint)
 
 def unwrap(resp: Dict[str, Any], *, print_message: bool = True) -> Any:
+    """Validate a Threadle response and return its payload."""
     if resp.get("Success") is not True:
         code = resp.get("Code") or "Error"
         msg = resp.get("Message") or "Threadle error"
@@ -209,6 +215,7 @@ def call(
     return_response: bool = False,
     drop: tuple[str, ...] = (),
 ) -> Any:
+    """Call a typed Threadle command wrapper using the caller's local variables."""
     args = collect_args(**locals_dict)
     args.pop("cmd", None)
     args.pop("assign", None)
