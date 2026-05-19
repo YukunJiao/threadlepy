@@ -5,18 +5,16 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "threadlepy"
 version = "0.1.0"
-authors = [
-  { name = "Yukun Jiao", email = "jiaoyukun1999@gmail.com" },
-]
-description = "A Python client for the Threadle CLI"
+description = "Python wrapper for the Threadle command-line interface"
 readme = "README.md"
 requires-python = ">=3.9"
-keywords = ["threadle", "network", "graph", "cli", "social-networks"]
+license = "MIT"
+authors = [
+  { name = "Yukun Jiao" }
+]
 classifiers = [
-    "Programming Language :: Python :: 3",
-    "License :: OSI Approved :: MIT License",
-    "Operating System :: OS Independent",
-    "Topic :: Scientific/Engineering",
+  "Programming Language :: Python :: 3",
+  "Operating System :: OS Independent",
 ]
 license = "MIT"
 license-files = ["LICEN[CS]E*"]
