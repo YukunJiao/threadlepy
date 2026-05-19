@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.1
+
+- Updated PyPI project description to match README.
+- Synchronized package metadata version with the 0.1.1 release.
+
 ## 0.1.0
 
 - Expanded Python command wrappers to better correspond to Threadle.
