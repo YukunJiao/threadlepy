@@ -4,6 +4,7 @@ include CHANGELOG.md
 include pyproject.toml
 
 recursive-include src/threadlepy/Examples *.tsv *.txt
+include src/threadlepy/py.typed
 recursive-include docs *.ipynb
 recursive-include scripts *.py
 

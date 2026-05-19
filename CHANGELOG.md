@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.2
+
+- Added one-line docstrings for public command wrappers.
+- Added `Literal` type hints for finite-choice parameters to improve editor completions.
+- Marked the package as typed with `py.typed`.
+
 ## 0.1.1
 
 - Updated PyPI project description to match README.

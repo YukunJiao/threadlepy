@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "threadlepy"
-version = "0.1.1"
+version = "0.1.2"
 description = "Python client for the Threadle CLI JSON interface."
 readme = "README.md"
 requires-python = ">=3.9"
@@ -27,4 +27,4 @@ Source = "https://github.com/YukunJiao/threadlepy"
 where = ["src"]
 
 [tool.setuptools.package-data]
-threadlepy = ["Examples/*.tsv", "Examples/Scripts/*.txt"]
+threadlepy = ["py.typed", "Examples/*.tsv", "Examples/Scripts/*.txt"]

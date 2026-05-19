@@ -3,15 +3,33 @@ from __future__ import annotations
 import os
 import shutil
 from importlib import resources
-from typing import Any, Optional, Union
+from typing import Any, Literal, Optional, Union
 
 from .client import ThreadleName, ThreadleStruct, call, is_available as _client_is_available, raw_cmd, start, stop
 
 NodeId = Union[int, str]
+Condition = Literal["eq", "ne", "gt", "lt", "ge", "le", "isnull", "notnull"]
+NumericCondition = Literal["eq", "ne", "gt", "lt", "ge", "le"]
+Direction = Literal["both", "in", "out"]
+AttrType = Literal["int", "char", "float", "bool", "string"]
+LayerMode = Literal[1, 2, "1", "2"]
+LayerValueType = Literal["binary", "valued"]
+LayerFormat = Literal["edgelist", "matrix"]
+StructureType = Literal["network", "nodeset"]
+SymmetrizeMethod = Literal["max", "min", "minnonzero", "average", "sum", "product"]
+ProjectMethod = Literal["count", "newman", "binary"]
+GenerateType = Literal["er", "ws", "ba", "2mode"]
 
-CONDITIONS = ("eq", "ne", "gt", "lt", "ge", "le", "isnull", "notnull")
-DIRECTIONS = ("both", "in", "out")
-ATTR_TYPES = ("int", "char", "float", "bool", "string")
+CONDITIONS: tuple[Condition, ...] = ("eq", "ne", "gt", "lt", "ge", "le", "isnull", "notnull")
+NUMERIC_CONDITIONS: tuple[NumericCondition, ...] = ("eq", "ne", "gt", "lt", "ge", "le")
+DIRECTIONS: tuple[Direction, ...] = ("both", "in", "out")
+ATTR_TYPES: tuple[AttrType, ...] = ("int", "char", "float", "bool", "string")
+LAYER_VALUE_TYPES: tuple[LayerValueType, ...] = ("binary", "valued")
+LAYER_FORMATS: tuple[LayerFormat, ...] = ("edgelist", "matrix")
+STRUCTURE_TYPES: tuple[StructureType, ...] = ("network", "nodeset")
+SYMMETRIZE_METHODS: tuple[SymmetrizeMethod, ...] = ("max", "min", "minnonzero", "average", "sum", "product")
+PROJECT_METHODS: tuple[ProjectMethod, ...] = ("count", "newman", "binary")
+GENERATE_TYPES: tuple[GenerateType, ...] = ("er", "ws", "ba", "2mode")
 
 
 def _check(value: str, allowed: tuple[str, ...], name: str) -> str:
@@ -56,7 +74,7 @@ def cmd(
     args: Optional[dict[str, Any]] = None,
     *,
     assign: Optional[str] = None,
-    type: Optional[str] = None,
+    type: Optional[StructureType] = None,
     **kwargs: Any,
 ):
     """Send a raw Threadle command to the backend."""
@@ -238,15 +256,15 @@ def get_node_hyperedges(network: ThreadleName, layername: str, nodeid: NodeId):
 def add_layer(
     network: ThreadleName,
     layername: str,
-    mode: int,
+    mode: LayerMode,
     directed: bool = False,
-    valuetype: str = "binary",
+    valuetype: LayerValueType = "binary",
     selfties: bool = False,
 ):
     """Add a one-mode or two-mode relational layer to a network."""
     if str(mode) not in ("1", "2"):
         raise ValueError("mode must be 1 or 2.")
-    _check(valuetype, ("binary", "valued"), "valuetype")
+    _check(valuetype, LAYER_VALUE_TYPES, "valuetype")
     return call("addlayer", locals())
 
 
@@ -259,7 +277,7 @@ def import_layer(
     network: ThreadleName,
     layername: str,
     file: str,
-    format: str = "edgelist",
+    format: LayerFormat = "edgelist",
     node1col: int = 0,
     node2col: int = 1,
     valuecol: int = 2,
@@ -270,7 +288,7 @@ def import_layer(
     addmissingnodes: bool = False,
 ):
     """Import ties into an existing network layer from a file."""
-    _check(format, ("edgelist", "matrix"), "format")
+    _check(format, LAYER_FORMATS, "format")
     return call("importlayer", locals())
 
 
@@ -319,7 +337,7 @@ def get_random_node(structure: ThreadleName):
 # ============================================
 # Attributes
 # ============================================
-def define_attr(structure: ThreadleName, attrname: str, attrtype: str = "int"):
+def define_attr(structure: ThreadleName, attrname: str, attrtype: AttrType = "int"):
     """Define a node attribute on a network or nodeset."""
     _check(attrtype, ATTR_TYPES, "attrtype")
     return call("defineattr", locals())
@@ -359,7 +377,7 @@ def remove_attr(structure: ThreadleName, nodeid: NodeId, attrname: str):
 def generate_attr(
     structure: ThreadleName,
     attrname: str,
-    attrtype: str = "int",
+    attrtype: AttrType = "int",
     min: Optional[Any] = None,
     max: Optional[Any] = None,
     p: float = 0.5,
@@ -385,7 +403,7 @@ def get_node_alters(
     network: ThreadleName,
     nodeid: NodeId,
     layernames: Optional[Union[str, list[str], tuple[str, ...]]] = "",
-    direction: str = "out",
+    direction: Direction = "out",
     unique: bool = True,
     layername: Optional[Union[str, list[str], tuple[str, ...]]] = None,
 ):
@@ -401,7 +419,7 @@ def get_random_alter(
     network: ThreadleName,
     nodeid: NodeId,
     layernames: Optional[Union[str, list[str], tuple[str, ...]]] = "",
-    direction: str = "both",
+    direction: Direction = "both",
     balanced: bool = False,
     weighted: bool = False,
     layername: Optional[Union[str, list[str], tuple[str, ...]]] = None,
@@ -418,7 +436,7 @@ def get_degree(
     network: ThreadleName,
     nodeid: NodeId,
     layernames: Optional[Union[str, list[str], tuple[str, ...]]] = None,
-    direction: str = "out",
+    direction: Direction = "out",
     unique: bool = True,
     layername: Optional[Union[str, list[str], tuple[str, ...]]] = None,
 ):
@@ -462,7 +480,7 @@ def shortest_paths(
 # ============================================
 # Network measures / transforms
 # ============================================
-def degree(network: ThreadleName, layername: str, attrname: Optional[str] = None, direction: str = "out"):
+def degree(network: ThreadleName, layername: str, attrname: Optional[str] = None, direction: Direction = "out"):
     """Compute node degree values for a layer."""
     _check(direction, DIRECTIONS, "direction")
     return call("degree", locals())
@@ -476,14 +494,14 @@ def density(network: ThreadleName, layername: str, samplesize: int = 200):
 def dichotomize(
     network: ThreadleName,
     layername: str,
-    cond: str = "ge",
+    cond: NumericCondition = "ge",
     threshold: Any = 1,
     truevalue: Any = 1,
     falsevalue: Any = 0,
     newlayername: Optional[str] = None,
 ):
     """Create a binary layer by thresholding a valued one-mode layer."""
-    _check(cond, CONDITIONS[:6], "cond")
+    _check(cond, NUMERIC_CONDITIONS, "cond")
     return call("dichotomize", locals())
 
 
@@ -504,22 +522,22 @@ def components(
 def symmetrize(
     network: ThreadleName,
     layername: str,
-    method: str = "max",
+    method: SymmetrizeMethod = "max",
     newlayername: Optional[str] = None,
 ):
     """Create a symmetric version of a one-mode layer."""
-    _check(method, ("max", "min", "minnonzero", "average", "sum", "product"), "method")
+    _check(method, SYMMETRIZE_METHODS, "method")
     return call("symmetrize", locals())
 
 
 def project_two_mode(
     network: ThreadleName,
     layername: str,
-    method: str = "count",
+    method: ProjectMethod = "count",
     newlayername: Optional[str] = None,
 ):
     """Project a two-mode layer to a one-mode layer."""
-    _check(method, ("count", "newman", "binary"), "method")
+    _check(method, PROJECT_METHODS, "method")
     return call("projecttwomode", locals())
 
 
@@ -548,9 +566,9 @@ def create_network(var: str, nodeset: ThreadleName, name: Optional[str] = None):
     return _handle(var)
 
 
-def load_file(name: str, file: str, type: str, pack: bool = False):
+def load_file(name: str, file: str, type: StructureType, pack: bool = False):
     """Load a nodeset or network file and return its Threadle handle."""
-    _check(type, ("network", "nodeset"), "type")
+    _check(type, STRUCTURE_TYPES, "type")
     file2 = os.path.expanduser(file)
     old_wd = None
     if os.path.dirname(file2):
@@ -634,14 +652,14 @@ def delete_all():
 # ============================================
 # Subsetting / filtering
 # ============================================
-def filter(name: str, nodeset: ThreadleName, attrname: str, cond: str, attrvalue: Any = None):
+def filter(name: str, nodeset: ThreadleName, attrname: str, cond: Condition, attrvalue: Any = None):
     """Create a filtered nodeset from node attribute values."""
     _check(cond, CONDITIONS, "cond")
     call("filter", locals(), assign=name)
     return _handle(name)
 
 
-def filter_nodeset(name: str, nodeset: ThreadleName, attrname: str, cond: str, attrvalue: Any = None):
+def filter_nodeset(name: str, nodeset: ThreadleName, attrname: str, cond: Condition, attrvalue: Any = None):
     """Alias for filter."""
     return filter(name, nodeset, attrname, cond, attrvalue)
 
@@ -658,7 +676,7 @@ def subnet(name: str, network: ThreadleName, nodeset: ThreadleName):
 def generate(
     network: ThreadleName,
     layername: str,
-    type: str,
+    type: GenerateType,
     p: Optional[float] = None,
     k: Optional[int] = None,
     beta: Optional[float] = None,
@@ -667,7 +685,7 @@ def generate(
     a: Optional[float] = None,
 ):
     """Generate random ties in a network layer."""
-    _check(type, ("er", "ws", "ba", "2mode"), "type")
+    _check(type, GENERATE_TYPES, "type")
     return call("generate", locals())
 
 
