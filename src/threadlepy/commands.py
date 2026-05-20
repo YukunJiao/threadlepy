@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import inspect
 import shutil
 from importlib import resources
 from typing import Any, Literal, Optional, Union
@@ -597,7 +598,7 @@ def load_script(file: str):
 
 def load_examples(
     examples: Union[str, list[str], tuple[str, ...]] = ("mynet", "lazega"),
-    assign: bool = False,
+    assign: bool = True,
     set_workdir_to_examples: bool = True,
     set_workdir: Optional[bool] = None,
 ):
@@ -623,15 +624,29 @@ def load_examples(
     if unknown:
         raise ValueError(f"Unknown example dataset(s): {', '.join(unknown)}")
 
+    caller_frame = inspect.currentframe().f_back
+    old_workdir = None
+
     with resources.as_file(resources.files("threadlepy").joinpath("Examples")) as ext:
         if set_workdir_to_examples:
+            old_workdir = get_workdir()
             globals()["set_workdir"](str(ext))
-        out: dict[str, ThreadleStruct] = {}
-        for example in selected:
-            ns_name, ns_file, net_name, net_file = specs[example]
-            out[ns_name] = load_file(ns_name, os.path.join(str(ext), ns_file), type="nodeset")
-            out[net_name] = load_file(net_name, os.path.join(str(ext), net_file), type="network")
-        return out
+
+        try:
+            out: dict[str, ThreadleStruct] = {}
+            for example in selected:
+                ns_name, ns_file, net_name, net_file = specs[example]
+                out[ns_name] = load_file(ns_name, os.path.join(str(ext), ns_file), type="nodeset")
+                out[net_name] = load_file(net_name, os.path.join(str(ext), net_file), type="network")
+
+            if assign and caller_frame is not None:
+                caller_frame.f_globals.update(out)
+                caller_frame.f_locals.update(out)
+
+            return out
+        finally:
+            if old_workdir is not None:
+                globals()["set_workdir"](old_workdir)
 
 
 def export(network: ThreadleName, file: str, layername: str, format: str = "gexf"):
@@ -740,7 +755,10 @@ def setting(name: str, value: Any):
     if name.lower() == "verbose":
         from . import client
 
-        client.configure(print_messages=bool(value))
+        if isinstance(value, str):
+            client.configure(print_messages=value.strip().lower() != "false")
+        else:
+            client.configure(print_messages=bool(value))
         return None
     return call("setting", locals())
 
