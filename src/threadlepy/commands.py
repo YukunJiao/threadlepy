@@ -735,14 +735,21 @@ def rwfpt(
     minpairobs: int = 10,
     balanced: bool = False,
     weighted: bool = False,
+    return_histograms: bool = False,
     layername: Optional[Union[str, list[str], tuple[str, ...]]] = None,
 ):
     """Estimate category mean first-passage times with random walks and return a result network handle."""
     if layername is not None and not layernames:
         layernames = layername
     layernames = _collapse(layernames)
-    call("rwfpt", locals(), assign=name, drop=("layername",))
-    return _handle(name)
+    args = locals().copy()
+    if return_histograms:
+        args["returnhistograms"] = "true"
+    payload = call("rwfpt", args, assign=name, drop=("layername", "return_histograms"))
+    network_handle = _handle(name)
+    if return_histograms and payload is not None:
+        return {"network": network_handle, "histograms": payload}
+    return network_handle
 
 
 def random_seed(seed: int = 6031769):

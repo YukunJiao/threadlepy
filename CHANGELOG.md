@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.4
+
+- Added the `return_histograms` option to `rwfpt()` / `th_rwfpt()` to match the current threadleR wrapper.
+
 ## 0.1.3
 
 - Aligned `load_examples()` with threadleR behavior by assigning example handles by default and restoring the previous Threadle working directory after loading.

@@ -253,6 +253,25 @@ def run(threadle_path: str | None = None, *, timeout: float = 1800.0) -> int:
         )
         show("info rw distances", lambda: th.info(rw_distances))
         show("info rw fpt", lambda: th.info(rw_fpt))
+        rw_fpt_hist = show(
+            "rw fpt with histograms",
+            lambda: th.rwfpt(
+                "rw_fpt_hist",
+                walk_net,
+                attrname="group",
+                maxsteps=30,
+                layernames="walk_layer",
+                walkfactor=0.5,
+                minpairobs=1,
+                balanced=False,
+                weighted=False,
+                return_histograms=True,
+            ),
+        )
+        show(
+            "info rw fpt histogram network",
+            lambda: th.info(rw_fpt_hist["network"] if isinstance(rw_fpt_hist, dict) else rw_fpt_hist),
+        )
 
         # Miscellaneous session helpers.
         show("setting verbose false", lambda: th.setting("verbose", False))
