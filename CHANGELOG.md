@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.3
+
+- Aligned `load_examples()` with threadleR behavior by assigning example handles by default and restoring the previous Threadle working directory after loading.
+- Added regression coverage for `load_examples()` workdir restoration and assignment behavior.
+- Added `scripts/test_all_commands_example_data.py`, an end-to-end workflow modeled after the threadleR example-data command script.
+- Ignored generated `threadle_examples/` and `threadle_outputs/` directories.
+
 ## 0.1.2
 
 - Added one-line docstrings for public command wrappers.
