@@ -39,6 +39,9 @@ default_timeout: float = 1800.0
 _stdout_lines: "queue.Queue[Optional[str]]" = queue.Queue()
 _stderr_tail: "collections.deque[str]" = collections.deque(maxlen=200)
 _readers: list[threading.Thread] = []
+# Responses still owed for commands that timed out. The backend handles commands in
+# order, so the next responses belong to those commands and must be skipped.
+_abandoned = 0
 
 def is_available(path: str | None = "threadle") -> bool:
     """Return whether the Threadle executable can be found."""
@@ -65,8 +68,9 @@ def configure(
         default_timeout = float(timeout)
 
 def _start_readers(p: subprocess.Popen[str]) -> None:
-    global _stdout_lines
+    global _stdout_lines, _abandoned
     _stdout_lines = queue.Queue()
+    _abandoned = 0
     _stderr_tail.clear()
 
     def read_stdout(stream, q):
@@ -95,21 +99,27 @@ def stop():
     """Stop the running Threadle subprocess, if one is active."""
     global proc
     p, proc = proc, None
-    if p is None or p.poll() is not None:
+    if p is None:
         return
-    try:  # ask the backend to exit on its own first
-        assert p.stdin is not None
-        p.stdin.write("exit\n")
-        p.stdin.flush()
-        p.stdin.close()
-        p.wait(timeout=5)
-    except Exception:
-        p.terminate()
-        try:
+    if p.poll() is None:
+        try:  # ask the backend to exit on its own first
+            assert p.stdin is not None
+            p.stdin.write("exit\n")
+            p.stdin.flush()
             p.wait(timeout=5)
-        except subprocess.TimeoutExpired:
-            p.kill()
-            p.wait()
+        except Exception:
+            p.terminate()
+            try:
+                p.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                p.kill()
+                p.wait()
+    for stream in (p.stdin,):
+        try:
+            if stream is not None:
+                stream.close()
+        except OSError:  # the process may already have closed its end
+            pass
     for t in _readers:  # the readers finish once the process has closed its pipes
         t.join(timeout=2)
     for stream in (p.stdout, p.stderr):
@@ -213,6 +223,7 @@ def json_cmd(command: str, args: Optional[Dict[str, Any]] = None, assign: Option
 
 def send_command(cmd_json: str, timeout: Optional[float] = None) -> Dict[str, Any]:
     """Send a JSON command to Threadle and wait for a JSON response."""
+    global _abandoned
     if proc is None:
         raise RuntimeError("Threadle process is not running.")
     if proc.poll() is not None:
@@ -231,9 +242,11 @@ def send_command(cmd_json: str, timeout: Optional[float] = None) -> Dict[str, An
     while True:
         remaining = end - time.monotonic()
         if remaining <= 0:
+            _abandoned += 1  # its response, when it comes, must not be taken for the next command's
             raise TimeoutError(
                 f"Timed out waiting for Threadle JSON response after {timeout} seconds. "
-                "Use threadlepy.client.configure(timeout=...) to increase it."
+                "Threadle may still be working on the command; its result will be discarded. "
+                "Use threadlepy.client.configure(timeout=...) to increase the timeout."
             )
         try:
             line = _stdout_lines.get(timeout=min(remaining, 0.5))
@@ -249,10 +262,14 @@ def send_command(cmd_json: str, timeout: Optional[float] = None) -> Dict[str, An
         if s.startswith("{") and s.endswith("}"):
             try:
                 resp = json.loads(s)
-                if isinstance(resp, dict):
-                    return resp
             except json.JSONDecodeError:
-                pass
+                continue
+            if not isinstance(resp, dict):
+                continue
+            if _abandoned > 0:  # a late response to a command that timed out
+                _abandoned -= 1
+                continue
+            return resp
 
 def unwrap(resp: Dict[str, Any], *, print_message: bool = True) -> Any:
     """Validate a Threadle response and return its payload."""

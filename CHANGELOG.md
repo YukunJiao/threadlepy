@@ -13,6 +13,10 @@
 - Wrappers send only their own parameters to Threadle, never other local variables,
   and name the parameter that holds the result's variable name explicitly
   (`call(..., assign_from="name")`) instead of matching it by value.
+- After a command times out, its late response is now discarded instead of being
+  returned as the result of the next command.
+- Arguments that take several node ids or names (`nodes`, `layernames`, ...) also
+  accept a single value, e.g. `set_attrs(net, "x", nodes=5, attrvalue=1)`.
 - **Breaking change**: `shortest_paths()` now wraps Threadle 1.3's `shortestpaths`,
   which returns exact distances for given node pairs: `shortest_paths(network,
   node1ids, node2ids, layernames=None, returnpaths=False)`. The previous

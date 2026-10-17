@@ -57,12 +57,25 @@ def _check(value: str, allowed: tuple[str, ...], name: str) -> str:
     return value
 
 
+def _as_list(values: Any) -> list[Any]:
+    """A single value as a one-element list; lists, tuples and other iterables as a list."""
+    if values is None:
+        return []
+    if isinstance(values, (str, bytes, ThreadleStruct)):
+        return [values]
+    try:
+        return list(values)
+    except TypeError:
+        return [values]
+
+
 def _collapse(values: Optional[Union[str, list[Any], tuple[Any, ...]]]) -> str:
+    """Join values with ';' as Threadle expects; a string is passed through unchanged."""
     if values is None:
         return ""
     if isinstance(values, str):
         return values
-    return ";".join(str(x) for x in values)
+    return ";".join(str(x) for x in _as_list(values))
 
 
 def _handle(name: str) -> ThreadleStruct:
@@ -493,6 +506,7 @@ def shortest_paths(
     entry per pair, in the given order, with distance -1 when no path exists; with
     ``returnpaths=True`` each entry also holds the node ids along the path.
     """
+    node1ids, node2ids = _as_list(node1ids), _as_list(node2ids)
     if len(node1ids) != len(node2ids):
         raise ValueError("node1ids and node2ids must have the same length.")
     layernames = _collapse(layernames) or None
