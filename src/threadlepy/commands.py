@@ -474,7 +474,7 @@ def shortest_paths(
     if layername is not None and not layernames:
         layernames = layername
     layernames = _collapse(layernames)
-    call("shortestpaths", locals(), assign=name, drop=("layername",))
+    call("shortestpaths", locals(), assign_from="name", drop=("layername",))
     return _handle(name)
 
 
@@ -557,13 +557,13 @@ def unpack(network: ThreadleName, layername: Optional[str] = None):
 # ============================================
 def create_nodeset(var: str, name: Optional[str] = None, createnodes: int = 0):
     """Create a nodeset and return its Threadle handle."""
-    call("createnodeset", locals(), assign=var)
+    call("createnodeset", locals(), assign_from="var")
     return _handle(var)
 
 
 def create_network(var: str, nodeset: ThreadleName, name: Optional[str] = None):
     """Create a network from a nodeset and return its Threadle handle."""
-    call("createnetwork", locals(), assign=var)
+    call("createnetwork", locals(), assign_from="var")
     return _handle(var)
 
 
@@ -670,7 +670,7 @@ def delete_all():
 def filter(name: str, nodeset: ThreadleName, attrname: str, cond: Condition, attrvalue: Any = None):
     """Create a filtered nodeset from node attribute values."""
     _check(cond, CONDITIONS, "cond")
-    call("filter", locals(), assign=name)
+    call("filter", locals(), assign_from="name")
     return _handle(name)
 
 
@@ -681,7 +681,7 @@ def filter_nodeset(name: str, nodeset: ThreadleName, attrname: str, cond: Condit
 
 def subnet(name: str, network: ThreadleName, nodeset: ThreadleName):
     """Create a subnetwork induced by a nodeset."""
-    call("subnet", locals(), assign=name)
+    call("subnet", locals(), assign_from="name")
     return _handle(name)
 
 
@@ -721,7 +721,7 @@ def rwdistances(
     if layername is not None and not layernames:
         layernames = layername
     layernames = _collapse(layernames)
-    call("rwdistances", locals(), assign=name, drop=("layername",))
+    call("rwdistances", locals(), assign_from="name", drop=("layername",))
     return _handle(name)
 
 
@@ -742,10 +742,13 @@ def rwfpt(
     if layername is not None and not layernames:
         layernames = layername
     layernames = _collapse(layernames)
-    args = locals().copy()
-    if return_histograms:
-        args["returnhistograms"] = "true"
-    payload = call("rwfpt", args, assign=name, drop=("layername", "return_histograms"))
+    payload = call(
+        "rwfpt",
+        locals(),
+        assign_from="name",
+        drop=("layername", "return_histograms"),
+        extra={"returnhistograms": "true" if return_histograms else None},
+    )
     network_handle = _handle(name)
     if return_histograms and payload is not None:
         return {"network": network_handle, "histograms": payload}

@@ -1,5 +1,19 @@
 # Changelog
 
+## Unreleased
+
+- The Threadle process is now read through background threads instead of `select()`,
+  so threadlepy also works on Windows. The backend's stderr is drained continuously
+  (so a chatty backend can no longer stall on a full pipe) and its last lines are shown
+  when the process fails.
+- `stop()` first asks Threadle to exit on its own and closes the process pipes;
+  `start()`/`stop()` log through the `threadlepy` logger instead of printing.
+- `start()` warns when the running Threadle version differs from the one this
+  version of threadlepy was written for (`client.SUPPORTED_THREADLE_VERSION`).
+- Wrappers send only their own parameters to Threadle, never other local variables,
+  and name the parameter that holds the result's variable name explicitly
+  (`call(..., assign_from="name")`) instead of matching it by value.
+
 ## 0.1.4
 
 - Added the `return_histograms` option to `rwfpt()` / `th_rwfpt()` to match the current threadleR wrapper.

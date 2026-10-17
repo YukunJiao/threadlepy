@@ -88,16 +88,6 @@ def annotation_choices(ann, choices):
     return None
 
 
-def assigned_names(stmts, before_line):
-    """Names bound by plain assignment in a function body before a given line."""
-    names = set()
-    for node in stmts:
-        for sub in ast.walk(node):
-            if isinstance(sub, (ast.Assign, ast.AugAssign, ast.AnnAssign)) and sub.lineno < before_line:
-                targets = sub.targets if isinstance(sub, ast.Assign) else [sub.target]
-                names.update(t.id for t in targets if isinstance(t, ast.Name))
-    return names
-
 
 def dict_key_edits(func, var, after_line, before_line):
     """Keys added (`var["k"] = ...`) and removed (`var.pop("k")`, `del var["k"]`)."""
@@ -167,7 +157,8 @@ def inspect_function(func, path, choices):
         if sub.func.id == "raw_cmd":
             sent = {literal(k) for k in payload.keys} if isinstance(payload, ast.Dict) else set()
         elif payload is not None and is_locals_call(payload):
-            sent = set(formals) | assigned_names(func.body, sub.lineno)
+            # call() sends only the wrapper's own parameters, never other locals
+            sent = set(formals)
         elif isinstance(payload, ast.Name):
             # args = locals().copy(); args["x"] = ...; call("cmd", args)
             origin = next((a for a in ast.walk(func) if isinstance(a, ast.Assign)
@@ -175,7 +166,7 @@ def inspect_function(func, path, choices):
                            and is_locals_call(a.value)), None)
             if origin is None:
                 continue
-            sent = set(formals) | assigned_names(func.body, origin.lineno)
+            sent = set(formals)
             added, removed = dict_key_edits(func, payload.id, origin.lineno, sub.lineno)
             sent = (sent | added) - removed
         else:
@@ -184,9 +175,12 @@ def inspect_function(func, path, choices):
         drop = literal(kw["drop"]) if "drop" in kw else ()
         sent -= set(drop if isinstance(drop, tuple) else (drop,))
         sent -= {"cmd", "assign"}
-        if isinstance(kw.get("assign"), ast.Name):  # call() drops the arg holding the assign name
+        if isinstance(kw.get("assign_from"), ast.Constant):  # parameter holding the assign name
+            sent.discard(kw["assign_from"].value)
+        if isinstance(kw.get("assign"), ast.Name):  # older convention: assign=<parameter>
             sent.discard(kw["assign"].id)
-        sent.discard(payload.id if isinstance(payload, ast.Name) else None)
+        if isinstance(kw.get("extra"), ast.Dict):  # arguments sent besides the parameters
+            sent |= {literal(k) for k in kw["extra"].keys if isinstance(literal(k), str)}
 
         return {
             "name": func.name,
@@ -286,6 +280,16 @@ def main():
     mapping = yaml.safe_load((TOOLS / "threadle-mapping.yaml").read_text(encoding="utf-8")) or {}
     wrappers = find_wrappers()
     backend, errors, warnings, notes = check(api, mapping, wrappers)
+
+    # The client warns at startup when the backend differs from SUPPORTED_THREADLE_VERSION;
+    # keep that in step with the snapshot the wrappers are checked against.
+    client_tree = ast.parse((SRC / "client.py").read_text(encoding="utf-8"))
+    supported = next((literal(n.value) for n in client_tree.body if isinstance(n, ast.Assign)
+                      and any(getattr(t, "id", None) == "SUPPORTED_THREADLE_VERSION" for t in n.targets)), None)
+    snapshot = ".".join(str(api["threadle_version"]).split(".")[:2])
+    if supported != snapshot:
+        errors.append(f"client.py: SUPPORTED_THREADLE_VERSION is {supported!r}, "
+                      f"but tools/threadle-api.json is for Threadle {snapshot}")
 
     wrapped = {w["cmd"] for w in wrappers}
     not_wrapped = mapping.get("not_wrapped") or {}
