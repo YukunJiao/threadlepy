@@ -86,6 +86,8 @@ def _start_readers(p: subprocess.Popen[str]) -> None:
         t.start()
 
 def _stderr_detail() -> str:
+    if len(_readers) == 2:  # let the stderr reader catch up with a process that just died
+        _readers[1].join(timeout=1)
     text = "\n".join(_stderr_tail).strip()
     return f"\nThreadle stderr:\n{text}" if text else ""
 
@@ -211,8 +213,10 @@ def json_cmd(command: str, args: Optional[Dict[str, Any]] = None, assign: Option
 
 def send_command(cmd_json: str, timeout: Optional[float] = None) -> Dict[str, Any]:
     """Send a JSON command to Threadle and wait for a JSON response."""
-    if proc is None or proc.poll() is not None:
+    if proc is None:
         raise RuntimeError("Threadle process is not running.")
+    if proc.poll() is not None:
+        raise RuntimeError(f"Threadle process has exited (code {proc.returncode}).{_stderr_detail()}")
     assert proc.stdin is not None
 
     if print_cmd:

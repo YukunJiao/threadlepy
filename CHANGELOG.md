@@ -21,6 +21,21 @@
   command. Use `rwfpt()` instead.
 - `export()`: `layername` is optional (it is only required for gexf), and `format` is
   checked against gexf, graphml and pajek.
+- New wrappers for the remaining Threadle 1.3 commands, matching threadleR 0.6.0:
+  centrality (`betweenness_centrality()`, `closeness_centrality()`,
+  `harmonic_centrality()`, `eigenvector_centrality()`, `pagerank()`,
+  `edge_betweenness_centrality()`), cohesion and communities (`clustering_coefficient()`,
+  `transitivity()`, `coreness()`, `constraint()`, `effective_size()`,
+  `community_detection()`, `small_world_coefficient()`, `assortativity()`,
+  `degree_assortativity()`), census and distances (`dyad_census()`, `triadic_census()`,
+  `diameter()`, `eccentricity()`), layer and structure operations (`duplicate()`,
+  `rename()`, `binary_to_valued()`, `symmetric_to_directed()`, `rewire()`,
+  `merge_layers()`, `merge_networks()`, `merge_nodesets()`, `import_network()`),
+  attributes and tables (`convert_attr()`, `set_attrs()`, `import_node_attributes()`,
+  `get_attrs_table()`, `get_layer_stats()`, `get_alter_details()`), and `about()` /
+  `system_info()`. All have `th_*` aliases.
+- Added `scripts/test_threadle_13_commands.py`, which runs every new wrapper against a
+  live Threadle process.
 
 ## 0.1.4
 
