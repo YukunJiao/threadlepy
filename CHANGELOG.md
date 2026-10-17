@@ -40,6 +40,9 @@
   `system_info()`. All have `th_*` aliases.
 - Added `scripts/test_threadle_13_commands.py`, which runs every new wrapper against a
   live Threadle process.
+- The tutorial uses the new `shortest_paths()` and `shortest_paths_attributes()`, no
+  longer calls `rwdistances()`, has a short section on the new network analyses, and
+  was re-executed against Threadle 1.3.0.
 
 ## 0.1.4
 
