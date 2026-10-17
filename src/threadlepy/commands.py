@@ -20,6 +20,7 @@ StructureType = Literal["network", "nodeset"]
 SymmetrizeMethod = Literal["max", "min", "minnonzero", "average", "sum", "product"]
 ProjectMethod = Literal["count", "newman", "binary"]
 GenerateType = Literal["er", "ws", "ba", "2mode"]
+ExportFormat = Literal["gexf", "graphml", "pajek"]
 
 CONDITIONS: tuple[Condition, ...] = ("eq", "ne", "gt", "lt", "ge", "le", "isnull", "notnull")
 NUMERIC_CONDITIONS: tuple[NumericCondition, ...] = ("eq", "ne", "gt", "lt", "ge", "le")
@@ -31,6 +32,7 @@ STRUCTURE_TYPES: tuple[StructureType, ...] = ("network", "nodeset")
 SYMMETRIZE_METHODS: tuple[SymmetrizeMethod, ...] = ("max", "min", "minnonzero", "average", "sum", "product")
 PROJECT_METHODS: tuple[ProjectMethod, ...] = ("count", "newman", "binary")
 GENERATE_TYPES: tuple[GenerateType, ...] = ("er", "ws", "ba", "2mode")
+EXPORT_FORMATS: tuple[ExportFormat, ...] = ("gexf", "graphml", "pajek")
 
 
 def _check(value: str, allowed: tuple[str, ...], name: str) -> str:
@@ -464,6 +466,26 @@ def shortest_path(
 
 
 def shortest_paths(
+    network: ThreadleName,
+    node1ids: Union[list[NodeId], tuple[NodeId, ...]],
+    node2ids: Union[list[NodeId], tuple[NodeId, ...]],
+    layernames: Optional[Union[str, list[str], tuple[str, ...]]] = None,
+    returnpaths: bool = False,
+):
+    """Return exact shortest path distances for a batch of node pairs.
+
+    Pairs are formed element-wise from ``node1ids`` and ``node2ids``. Returns one
+    entry per pair, in the given order, with distance -1 when no path exists; with
+    ``returnpaths=True`` each entry also holds the node ids along the path.
+    """
+    if len(node1ids) != len(node2ids):
+        raise ValueError("node1ids and node2ids must have the same length.")
+    layernames = _collapse(layernames) or None
+    pairs = ";".join(f"{a}:{b}" for a, b in zip(node1ids, node2ids))
+    return call("shortestpaths", locals(), drop=("node1ids", "node2ids"), extra={"pairs": pairs})
+
+
+def shortest_paths_attributes(
     name: str,
     network: ThreadleName,
     attrname: str,
@@ -474,7 +496,7 @@ def shortest_paths(
     if layername is not None and not layernames:
         layernames = layername
     layernames = _collapse(layernames)
-    call("shortestpaths", locals(), assign_from="name", drop=("layername",))
+    call("shortestpathsattributes", locals(), assign_from="name", drop=("layername",))
     return _handle(name)
 
 
@@ -649,8 +671,13 @@ def load_examples(
                 globals()["set_workdir"](old_workdir)
 
 
-def export(network: ThreadleName, file: str, layername: str, format: str = "gexf"):
-    """Export a network layer to an external graph format."""
+def export(network: ThreadleName, file: str, layername: Optional[str] = None, format: ExportFormat = "gexf"):
+    """Export a network to an external graph format.
+
+    gexf is single-layer, so ``layername`` is required for it. graphml exports all
+    layers unless ``layername`` is given; pajek always exports the whole network.
+    """
+    _check(format, EXPORT_FORMATS, "format")
     return call("export", locals())
 
 
@@ -702,27 +729,6 @@ def generate(
     """Generate random ties in a network layer."""
     _check(type, GENERATE_TYPES, "type")
     return call("generate", locals())
-
-
-def rwdistances(
-    name: str,
-    network: ThreadleName,
-    attrname: str,
-    maxsteps: int,
-    layernames: Optional[Union[str, list[str], tuple[str, ...]]] = None,
-    walkfactor: float = 1.0,
-    balanced: bool = False,
-    weighted: bool = False,
-    backtrack: bool = False,
-    savesteps: bool = False,
-    layername: Optional[Union[str, list[str], tuple[str, ...]]] = None,
-):
-    """Estimate category distances with random walks and return a result network handle."""
-    if layername is not None and not layernames:
-        layernames = layername
-    layernames = _collapse(layernames)
-    call("rwdistances", locals(), assign_from="name", drop=("layername",))
-    return _handle(name)
 
 
 def rwfpt(

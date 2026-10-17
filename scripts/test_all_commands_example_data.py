@@ -136,9 +136,13 @@ def run(threadle_path: str | None = None, *, timeout: float = 1800.0) -> int:
             "shortest path 123 to 567",
             lambda: th.shortest_path(mynet, node1id=123, node2id=567, layernames="kinship"),
         )
+        show(
+            "shortest paths for pairs",
+            lambda: th.shortest_paths(mynet, node1ids=[123, 567], node2ids=[567, 123], layernames="kinship"),
+        )
         gender_shortest_paths = show(
             "shortest paths by gender",
-            lambda: th.shortest_paths("gender_shortest_paths", mynet, attrname="gender", layernames="kinship"),
+            lambda: th.shortest_paths_attributes("gender_shortest_paths", mynet, attrname="gender", layernames="kinship"),
         )
         show("info gender shortest paths", lambda: th.info(gender_shortest_paths))
 
@@ -222,21 +226,6 @@ def run(threadle_path: str | None = None, *, timeout: float = 1800.0) -> int:
                 lambda node=node: th.set_attr(walk_net, nodeid=node, attrname="group", attrvalue=1 if node <= 2 else 2),
             )
 
-        rw_distances = show(
-            "rw distances",
-            lambda: th.rwdistances(
-                "rw_distances",
-                walk_net,
-                attrname="group",
-                maxsteps=30,
-                layernames="walk_layer",
-                walkfactor=0.5,
-                balanced=False,
-                weighted=False,
-                backtrack=False,
-                savesteps=False,
-            ),
-        )
         rw_fpt = show(
             "rw fpt",
             lambda: th.rwfpt(
@@ -251,7 +240,6 @@ def run(threadle_path: str | None = None, *, timeout: float = 1800.0) -> int:
                 weighted=False,
             ),
         )
-        show("info rw distances", lambda: th.info(rw_distances))
         show("info rw fpt", lambda: th.info(rw_fpt))
         rw_fpt_hist = show(
             "rw fpt with histograms",

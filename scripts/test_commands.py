@@ -107,8 +107,12 @@ def run(threadle_path: str | None = None, *, timeout: float = 1800.0) -> int:
                 ("degree attr", lambda: th.degree("mynet", "kinship", attrname="kinship_degree_py", direction="both")),
                 ("shortest path", lambda: th.shortest_path("mynet", 123, 567, layernames="kinship")),
                 (
+                    "shortest paths for pairs",
+                    lambda: th.shortest_paths("mynet", [123, 567], [567, 123], layernames="kinship", returnpaths=True),
+                ),
+                (
                     "shortest paths by gender",
-                    lambda: th.shortest_paths("paths_by_gender_py", "mynet", "gender", layernames="kinship"),
+                    lambda: th.shortest_paths_attributes("paths_by_gender_py", "mynet", "gender", layernames="kinship"),
                 ),
             ],
         )

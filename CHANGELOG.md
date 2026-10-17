@@ -13,6 +13,14 @@
 - Wrappers send only their own parameters to Threadle, never other local variables,
   and name the parameter that holds the result's variable name explicitly
   (`call(..., assign_from="name")`) instead of matching it by value.
+- **Breaking change**: `shortest_paths()` now wraps Threadle 1.3's `shortestpaths`,
+  which returns exact distances for given node pairs: `shortest_paths(network,
+  node1ids, node2ids, layernames=None, returnpaths=False)`. The previous
+  attribute-category result network is now `shortest_paths_attributes()`.
+- **Breaking change**: `rwdistances()` is removed; Threadle no longer has the
+  command. Use `rwfpt()` instead.
+- `export()`: `layername` is optional (it is only required for gexf), and `format` is
+  checked against gexf, graphml and pajek.
 
 ## 0.1.4
 
