@@ -1,5 +1,49 @@
 # Changelog
 
+## Unreleased
+
+- The Threadle process is now read through background threads instead of `select()`,
+  so threadlepy also works on Windows. The backend's stderr is drained continuously
+  (so a chatty backend can no longer stall on a full pipe) and its last lines are shown
+  when the process fails.
+- `stop()` first asks Threadle to exit on its own and closes the process pipes;
+  `start()`/`stop()` log through the `threadlepy` logger instead of printing.
+- `start()` warns when the running Threadle version differs from the one this
+  version of threadlepy was written for (`client.SUPPORTED_THREADLE_VERSION`).
+- Wrappers send only their own parameters to Threadle, never other local variables,
+  and name the parameter that holds the result's variable name explicitly
+  (`call(..., assign_from="name")`) instead of matching it by value.
+- After a command times out, its late response is now discarded instead of being
+  returned as the result of the next command.
+- Arguments that take several node ids or names (`nodes`, `layernames`, ...) also
+  accept a single value, e.g. `set_attrs(net, "x", nodes=5, attrvalue=1)`.
+- **Breaking change**: `shortest_paths()` now wraps Threadle 1.3's `shortestpaths`,
+  which returns exact distances for given node pairs: `shortest_paths(network,
+  node1ids, node2ids, layernames=None, returnpaths=False)`. The previous
+  attribute-category result network is now `shortest_paths_attributes()`.
+- **Breaking change**: `rwdistances()` is removed; Threadle no longer has the
+  command. Use `rwfpt()` instead.
+- `export()`: `layername` is optional (it is only required for gexf), and `format` is
+  checked against gexf, graphml and pajek.
+- New wrappers for the remaining Threadle 1.3 commands, matching threadleR 0.6.0:
+  centrality (`betweenness_centrality()`, `closeness_centrality()`,
+  `harmonic_centrality()`, `eigenvector_centrality()`, `pagerank()`,
+  `edge_betweenness_centrality()`), cohesion and communities (`clustering_coefficient()`,
+  `transitivity()`, `coreness()`, `constraint()`, `effective_size()`,
+  `community_detection()`, `small_world_coefficient()`, `assortativity()`,
+  `degree_assortativity()`), census and distances (`dyad_census()`, `triadic_census()`,
+  `diameter()`, `eccentricity()`), layer and structure operations (`duplicate()`,
+  `rename()`, `binary_to_valued()`, `symmetric_to_directed()`, `rewire()`,
+  `merge_layers()`, `merge_networks()`, `merge_nodesets()`, `import_network()`),
+  attributes and tables (`convert_attr()`, `set_attrs()`, `import_node_attributes()`,
+  `get_attrs_table()`, `get_layer_stats()`, `get_alter_details()`), and `about()` /
+  `system_info()`. All have `th_*` aliases.
+- Added `scripts/test_threadle_13_commands.py`, which runs every new wrapper against a
+  live Threadle process.
+- The tutorial uses the new `shortest_paths()` and `shortest_paths_attributes()`, no
+  longer calls `rwdistances()`, has a short section on the new network analyses, and
+  was re-executed against Threadle 1.3.0.
+
 ## 0.1.4
 
 - Added the `return_histograms` option to `rwfpt()` / `th_rwfpt()` to match the current threadleR wrapper.

@@ -1,0 +1,18 @@
+# Hand-maintained part of the threadlepy <-> Threadle backend mapping.
+#
+# Most of the mapping is read from the code itself by tools/check_api.py:
+# each wrapper's backend command is the first argument of `call("...", locals())`
+# (or `raw_cmd("...", {...})`), and its arguments are sent under their Python
+# names. Only record here what the code cannot tell.
+
+# Backend commands that intentionally have no Python wrapper, with the reason.
+not_wrapped:
+  help: Python users get documentation through docstrings and help().
+
+# Backend commands that should get a wrapper later, with a note.
+planned: {}
+
+# Arguments of a wrapper that are sent to the backend but are not backend
+# parameters, by function name ("*" applies to all wrappers). Arguments removed
+# with `drop=(...)`, `args.pop("x")` or the `assign=` name are detected automatically.
+py_only_args: {}

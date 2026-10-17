@@ -20,6 +20,15 @@ StructureType = Literal["network", "nodeset"]
 SymmetrizeMethod = Literal["max", "min", "minnonzero", "average", "sum", "product"]
 ProjectMethod = Literal["count", "newman", "binary"]
 GenerateType = Literal["er", "ws", "ba", "2mode"]
+ExportFormat = Literal["gexf", "graphml", "pajek"]
+ImportFormat = Literal["graphml", "pajek"]
+ClusteringMethod = Literal["auto", "wattsstrogatz", "fagiolo", "barrat", "onnela"]
+CommunityType = Literal["louvain", "leiden", "lp", "lpam", "gn"]
+SwapType = Literal["2edge", "3edge"]
+MergeMethod = Literal["max", "and", "or", "xor", "sum", "average", "min", "product"]
+ValueConflict = Literal["fail", "keepfirst", "keeplast"]
+ItemType = Literal["layer", "attribute"]
+LayerNames = Optional[Union[str, list[str], tuple[str, ...]]]
 
 CONDITIONS: tuple[Condition, ...] = ("eq", "ne", "gt", "lt", "ge", "le", "isnull", "notnull")
 NUMERIC_CONDITIONS: tuple[NumericCondition, ...] = ("eq", "ne", "gt", "lt", "ge", "le")
@@ -31,6 +40,14 @@ STRUCTURE_TYPES: tuple[StructureType, ...] = ("network", "nodeset")
 SYMMETRIZE_METHODS: tuple[SymmetrizeMethod, ...] = ("max", "min", "minnonzero", "average", "sum", "product")
 PROJECT_METHODS: tuple[ProjectMethod, ...] = ("count", "newman", "binary")
 GENERATE_TYPES: tuple[GenerateType, ...] = ("er", "ws", "ba", "2mode")
+EXPORT_FORMATS: tuple[ExportFormat, ...] = ("gexf", "graphml", "pajek")
+IMPORT_FORMATS: tuple[ImportFormat, ...] = ("graphml", "pajek")
+CLUSTERING_METHODS: tuple[ClusteringMethod, ...] = ("auto", "wattsstrogatz", "fagiolo", "barrat", "onnela")
+COMMUNITY_TYPES: tuple[CommunityType, ...] = ("louvain", "leiden", "lp", "lpam", "gn")
+SWAP_TYPES: tuple[SwapType, ...] = ("2edge", "3edge")
+MERGE_METHODS: tuple[MergeMethod, ...] = ("max", "and", "or", "xor", "sum", "average", "min", "product")
+VALUE_CONFLICTS: tuple[ValueConflict, ...] = ("fail", "keepfirst", "keeplast")
+ITEM_TYPES: tuple[ItemType, ...] = ("layer", "attribute")
 
 
 def _check(value: str, allowed: tuple[str, ...], name: str) -> str:
@@ -40,12 +57,25 @@ def _check(value: str, allowed: tuple[str, ...], name: str) -> str:
     return value
 
 
+def _as_list(values: Any) -> list[Any]:
+    """A single value as a one-element list; lists, tuples and other iterables as a list."""
+    if values is None:
+        return []
+    if isinstance(values, (str, bytes, ThreadleStruct)):
+        return [values]
+    try:
+        return list(values)
+    except TypeError:
+        return [values]
+
+
 def _collapse(values: Optional[Union[str, list[Any], tuple[Any, ...]]]) -> str:
+    """Join values with ';' as Threadle expects; a string is passed through unchanged."""
     if values is None:
         return ""
     if isinstance(values, str):
         return values
-    return ";".join(str(x) for x in values)
+    return ";".join(str(x) for x in _as_list(values))
 
 
 def _handle(name: str) -> ThreadleStruct:
@@ -464,6 +494,27 @@ def shortest_path(
 
 
 def shortest_paths(
+    network: ThreadleName,
+    node1ids: Union[list[NodeId], tuple[NodeId, ...]],
+    node2ids: Union[list[NodeId], tuple[NodeId, ...]],
+    layernames: Optional[Union[str, list[str], tuple[str, ...]]] = None,
+    returnpaths: bool = False,
+):
+    """Return exact shortest path distances for a batch of node pairs.
+
+    Pairs are formed element-wise from ``node1ids`` and ``node2ids``. Returns one
+    entry per pair, in the given order, with distance -1 when no path exists; with
+    ``returnpaths=True`` each entry also holds the node ids along the path.
+    """
+    node1ids, node2ids = _as_list(node1ids), _as_list(node2ids)
+    if len(node1ids) != len(node2ids):
+        raise ValueError("node1ids and node2ids must have the same length.")
+    layernames = _collapse(layernames) or None
+    pairs = ";".join(f"{a}:{b}" for a, b in zip(node1ids, node2ids))
+    return call("shortestpaths", locals(), drop=("node1ids", "node2ids"), extra={"pairs": pairs})
+
+
+def shortest_paths_attributes(
     name: str,
     network: ThreadleName,
     attrname: str,
@@ -474,7 +525,7 @@ def shortest_paths(
     if layername is not None and not layernames:
         layernames = layername
     layernames = _collapse(layernames)
-    call("shortestpaths", locals(), assign=name, drop=("layername",))
+    call("shortestpathsattributes", locals(), assign_from="name", drop=("layername",))
     return _handle(name)
 
 
@@ -557,13 +608,13 @@ def unpack(network: ThreadleName, layername: Optional[str] = None):
 # ============================================
 def create_nodeset(var: str, name: Optional[str] = None, createnodes: int = 0):
     """Create a nodeset and return its Threadle handle."""
-    call("createnodeset", locals(), assign=var)
+    call("createnodeset", locals(), assign_from="var")
     return _handle(var)
 
 
 def create_network(var: str, nodeset: ThreadleName, name: Optional[str] = None):
     """Create a network from a nodeset and return its Threadle handle."""
-    call("createnetwork", locals(), assign=var)
+    call("createnetwork", locals(), assign_from="var")
     return _handle(var)
 
 
@@ -649,8 +700,13 @@ def load_examples(
                 globals()["set_workdir"](old_workdir)
 
 
-def export(network: ThreadleName, file: str, layername: str, format: str = "gexf"):
-    """Export a network layer to an external graph format."""
+def export(network: ThreadleName, file: str, layername: Optional[str] = None, format: ExportFormat = "gexf"):
+    """Export a network to an external graph format.
+
+    gexf is single-layer, so ``layername`` is required for it. graphml exports all
+    layers unless ``layername`` is given; pajek always exports the whole network.
+    """
+    _check(format, EXPORT_FORMATS, "format")
     return call("export", locals())
 
 
@@ -670,7 +726,7 @@ def delete_all():
 def filter(name: str, nodeset: ThreadleName, attrname: str, cond: Condition, attrvalue: Any = None):
     """Create a filtered nodeset from node attribute values."""
     _check(cond, CONDITIONS, "cond")
-    call("filter", locals(), assign=name)
+    call("filter", locals(), assign_from="name")
     return _handle(name)
 
 
@@ -681,7 +737,7 @@ def filter_nodeset(name: str, nodeset: ThreadleName, attrname: str, cond: Condit
 
 def subnet(name: str, network: ThreadleName, nodeset: ThreadleName):
     """Create a subnetwork induced by a nodeset."""
-    call("subnet", locals(), assign=name)
+    call("subnet", locals(), assign_from="name")
     return _handle(name)
 
 
@@ -704,27 +760,6 @@ def generate(
     return call("generate", locals())
 
 
-def rwdistances(
-    name: str,
-    network: ThreadleName,
-    attrname: str,
-    maxsteps: int,
-    layernames: Optional[Union[str, list[str], tuple[str, ...]]] = None,
-    walkfactor: float = 1.0,
-    balanced: bool = False,
-    weighted: bool = False,
-    backtrack: bool = False,
-    savesteps: bool = False,
-    layername: Optional[Union[str, list[str], tuple[str, ...]]] = None,
-):
-    """Estimate category distances with random walks and return a result network handle."""
-    if layername is not None and not layernames:
-        layernames = layername
-    layernames = _collapse(layernames)
-    call("rwdistances", locals(), assign=name, drop=("layername",))
-    return _handle(name)
-
-
 def rwfpt(
     name: str,
     network: ThreadleName,
@@ -742,10 +777,13 @@ def rwfpt(
     if layername is not None and not layernames:
         layernames = layername
     layernames = _collapse(layernames)
-    args = locals().copy()
-    if return_histograms:
-        args["returnhistograms"] = "true"
-    payload = call("rwfpt", args, assign=name, drop=("layername", "return_histograms"))
+    payload = call(
+        "rwfpt",
+        locals(),
+        assign_from="name",
+        drop=("layername", "return_histograms"),
+        extra={"returnhistograms": "true" if return_histograms else None},
+    )
     network_handle = _handle(name)
     if return_histograms and payload is not None:
         return {"network": network_handle, "histograms": payload}
@@ -768,6 +806,381 @@ def setting(name: str, value: Any):
             client.configure(print_messages=bool(value))
         return None
     return call("setting", locals())
+
+
+# ============================================
+# Centrality (Threadle 1.3)
+# ============================================
+def betweenness_centrality(
+    network: ThreadleName,
+    layernames: LayerNames = None,
+    attrname: Optional[str] = None,
+    samplesize: int = 0,
+    traversal: Direction = "out",
+):
+    """Compute betweenness centrality (Brandes) and store it as a node attribute.
+
+    ``samplesize > 0`` estimates it from that many sampled source nodes.
+    """
+    _check(traversal, DIRECTIONS, "traversal")
+    layernames = _collapse(layernames) or None
+    return call("betweennesscentrality", locals())
+
+
+def closeness_centrality(
+    network: ThreadleName,
+    layernames: LayerNames = None,
+    attrname: Optional[str] = None,
+    samplesize: int = 0,
+    traversal: Direction = "out",
+):
+    """Compute closeness centrality (Wasserman-Faust normalization) and store it as a node attribute."""
+    _check(traversal, DIRECTIONS, "traversal")
+    layernames = _collapse(layernames) or None
+    return call("closenesscentrality", locals())
+
+
+def harmonic_centrality(
+    network: ThreadleName,
+    layernames: LayerNames = None,
+    attrname: Optional[str] = None,
+    samplesize: int = 0,
+    normalize: bool = True,
+    traversal: Direction = "out",
+):
+    """Compute harmonic centrality (sum of inverse distances) and store it as a node attribute."""
+    _check(traversal, DIRECTIONS, "traversal")
+    layernames = _collapse(layernames) or None
+    return call("harmoniccentrality", locals())
+
+
+def eigenvector_centrality(
+    network: ThreadleName,
+    layernames: LayerNames = None,
+    attrname: Optional[str] = None,
+    traversal: Direction = "out",
+    maxiterations: Optional[int] = None,
+    tolerance: Optional[float] = None,
+):
+    """Compute eigenvector centrality by power iteration and store it as a node attribute."""
+    _check(traversal, DIRECTIONS, "traversal")
+    layernames = _collapse(layernames) or None
+    return call("eigenvectorcentrality", locals())
+
+
+def pagerank(
+    network: ThreadleName,
+    layernames: LayerNames = None,
+    attrname: Optional[str] = None,
+    dampingfactor: Optional[float] = None,
+    maxiterations: Optional[int] = None,
+    tolerance: Optional[float] = None,
+):
+    """Compute PageRank scores and store them as a node attribute."""
+    layernames = _collapse(layernames) or None
+    return call("pagerank", locals())
+
+
+def edge_betweenness_centrality(
+    network: ThreadleName,
+    layername: str,
+    newlayername: Optional[str] = None,
+    samplesize: int = 0,
+    normalize: bool = True,
+):
+    """Compute edge betweenness centrality and store it as a new valued layer."""
+    return call("edgebetweennesscentrality", locals())
+
+
+# ============================================
+# Cohesion / structural holes / communities (Threadle 1.3)
+# ============================================
+def clustering_coefficient(
+    network: ThreadleName,
+    layernames: LayerNames = None,
+    attrname: Optional[str] = None,
+    method: ClusteringMethod = "auto",
+    samplesize: int = 0,
+):
+    """Compute local clustering coefficients and store them as a node attribute."""
+    _check(method, CLUSTERING_METHODS, "method")
+    layernames = _collapse(layernames) or None
+    return call("clusteringcoefficient", locals())
+
+
+def transitivity(network: ThreadleName, layernames: LayerNames = None):
+    """Return the global clustering coefficient (transitivity) of one or more layers."""
+    layernames = _collapse(layernames) or None
+    return call("transitivity", locals())
+
+
+def coreness(network: ThreadleName, layernames: LayerNames = None, attrname: Optional[str] = None):
+    """Compute each node's coreness (k-shell index) and store it as a node attribute."""
+    layernames = _collapse(layernames) or None
+    return call("coreness", locals())
+
+
+def constraint(network: ThreadleName, layernames: LayerNames = None, attrname: Optional[str] = None):
+    """Compute Burt's constraint for each node and store it as a node attribute."""
+    layernames = _collapse(layernames) or None
+    return call("constraints", locals())
+
+
+def effective_size(network: ThreadleName, layernames: LayerNames = None, attrname: Optional[str] = None):
+    """Compute Burt's effective size for each node and store it as a node attribute."""
+    layernames = _collapse(layernames) or None
+    return call("effectivesize", locals())
+
+
+def community_detection(
+    network: ThreadleName,
+    layernames: LayerNames = None,
+    attrname: Optional[str] = None,
+    type: CommunityType = "louvain",
+    resolution: Optional[float] = None,
+    randomness: Optional[float] = None,
+    maxiterations: Optional[int] = None,
+    numrestarts: int = 1,
+):
+    """Detect communities and store each node's community index as a node attribute."""
+    _check(type, COMMUNITY_TYPES, "type")
+    layernames = _collapse(layernames) or None
+    return call("communitydetection", locals())
+
+
+def small_world_coefficient(
+    network: ThreadleName,
+    layername: str,
+    nulltrials: int = 10,
+    traversal: Direction = "out",
+):
+    """Return the small-world coefficient sigma (Humphries & Gurney 2008) of a layer."""
+    _check(traversal, DIRECTIONS, "traversal")
+    return call("smallworldcoefficient", locals())
+
+
+def assortativity(network: ThreadleName, layername: str, attrname: str):
+    """Return attribute assortativity (homophily) for a layer."""
+    return call("assortativity", locals())
+
+
+def degree_assortativity(network: ThreadleName, layername: str):
+    """Return degree assortativity for a layer."""
+    return call("degreeassortativity", locals())
+
+
+# ============================================
+# Census / distances (Threadle 1.3)
+# ============================================
+def dyad_census(network: ThreadleName, layername: str):
+    """Return the MAN dyad census and reciprocity measures of a layer."""
+    return call("dyadcensus", locals())
+
+
+def triadic_census(network: ThreadleName, layername: str, samplesize: int = 0):
+    """Return the Holland-Leinhardt triadic census of a layer."""
+    return call("triadiccensus", locals())
+
+
+def diameter(
+    network: ThreadleName,
+    layername: str,
+    samplesize: int = 0,
+    numsweeps: int = 4,
+    traversal: Direction = "out",
+):
+    """Return the diameter and average path length of a layer's largest component."""
+    _check(traversal, DIRECTIONS, "traversal")
+    return call("diameter", locals())
+
+
+def eccentricity(
+    network: ThreadleName,
+    layername: str,
+    attrname: Optional[str] = None,
+    traversal: Direction = "out",
+):
+    """Compute each node's eccentricity and store it as a node attribute."""
+    _check(traversal, DIRECTIONS, "traversal")
+    return call("eccentricity", locals())
+
+
+# ============================================
+# Layer / network / nodeset operations (Threadle 1.3)
+# ============================================
+def duplicate(structure: ThreadleName, type: ItemType, from_: str, to: str):
+    """Copy a layer or node attribute under a new name, leaving the original untouched."""
+    _check(type, ITEM_TYPES, "type")
+    return call("duplicate", locals(), drop=("from_",), extra={"from": from_})
+
+
+def rename(structure: ThreadleName, type: ItemType, from_: str, to: str):
+    """Rename a layer or node attribute."""
+    _check(type, ITEM_TYPES, "type")
+    return call("rename", locals(), drop=("from_",), extra={"from": from_})
+
+
+def binary_to_valued(network: ThreadleName, layername: str, newlayername: Optional[str] = None):
+    """Create a valued copy of a binary layer, with every tie given the value 1."""
+    return call("binarytovalued", locals())
+
+
+def symmetric_to_directed(network: ThreadleName, layername: str, newlayername: Optional[str] = None):
+    """Create a directed copy of a symmetric layer, with each tie as two arcs."""
+    return call("symmetrictodirected", locals())
+
+
+def rewire(
+    network: ThreadleName,
+    layername: str,
+    newlayername: Optional[str] = None,
+    numswaps: int = 0,
+    swaptype: SwapType = "2edge",
+    maxtries: int = 0,
+):
+    """Create a randomized copy of a layer by degree-preserving edge swaps."""
+    _check(swaptype, SWAP_TYPES, "swaptype")
+    return call("rewire", locals())
+
+
+def merge_layers(
+    network: ThreadleName,
+    layer1: str,
+    layer2: str,
+    method: MergeMethod = "max",
+    newlayername: Optional[str] = None,
+):
+    """Merge two layers of the same mode into a new layer."""
+    _check(method, MERGE_METHODS, "method")
+    return call("mergelayers", locals())
+
+
+def merge_networks(
+    var: str,
+    network1: ThreadleName,
+    network2: ThreadleName,
+    name: Optional[str] = None,
+    onvalueconflict: ValueConflict = "fail",
+):
+    """Merge two networks into a new network and return its Threadle handle."""
+    _check(onvalueconflict, VALUE_CONFLICTS, "onvalueconflict")
+    call("mergenetworks", locals(), assign_from="var")
+    return _handle(var)
+
+
+def merge_nodesets(
+    var: str,
+    nodeset1: ThreadleName,
+    nodeset2: ThreadleName,
+    name: Optional[str] = None,
+    onvalueconflict: ValueConflict = "fail",
+):
+    """Merge two nodesets into a new nodeset and return its Threadle handle."""
+    _check(onvalueconflict, VALUE_CONFLICTS, "onvalueconflict")
+    call("mergenodesets", locals(), assign_from="var")
+    return _handle(var)
+
+
+def import_network(
+    var: str,
+    file: str,
+    format: ImportFormat = "graphml",
+    layerattr: str = "layer",
+    weightattr: str = "weight",
+    idattr: str = "id",
+    labelattr: str = "label",
+    pack: bool = False,
+):
+    """Import a graphml or pajek file as a new network and return its Threadle handle.
+
+    The network's new nodeset is available as ``f"{var}_nodeset"``.
+    """
+    _check(format, IMPORT_FORMATS, "format")
+    call("importnetwork", locals(), assign_from="var")
+    return _handle(var)
+
+
+# ============================================
+# Attributes / tables (Threadle 1.3)
+# ============================================
+def convert_attr(structure: ThreadleName, from_: str, to: str, attrtype: AttrType = "int"):
+    """Convert a node attribute to a new type under a new name, keeping the original."""
+    _check(attrtype, ATTR_TYPES, "attrtype")
+    return call("convertattr", locals(), drop=("from_",), extra={"from": from_})
+
+
+def set_attrs(
+    structure: ThreadleName,
+    attrname: str,
+    nodes: Optional[Union[str, list[NodeId], tuple[NodeId, ...]]] = None,
+    attrvalue: Any = None,
+    attrvalues: Optional[Union[str, list[Any], tuple[Any, ...]]] = None,
+):
+    """Set a node attribute for many nodes: one shared ``attrvalue`` or one value per node in ``attrvalues``."""
+    if (attrvalue is None) == (attrvalues is None):
+        raise TypeError("set_attrs() needs exactly one of attrvalue or attrvalues.")
+    nodes = _collapse(nodes) or None
+    attrvalues = _collapse(attrvalues) if attrvalues is not None else None
+    return call("setattrs", locals())
+
+
+def import_node_attributes(structure: ThreadleName, file: str, addmissingnodes: bool = False, sep: str = "\t"):
+    """Import node attributes from a tab-separated file into a nodeset."""
+    return call("importnodeattributes", locals())
+
+
+def get_attrs_table(
+    structure: ThreadleName,
+    nodes: Optional[Union[str, list[NodeId], tuple[NodeId, ...]]] = None,
+    attrnames: Optional[Union[str, list[str], tuple[str, ...]]] = None,
+    offset: int = 0,
+    limit: int = 1000,
+):
+    """Return a table (dict of columns) with one row per node and one column per attribute."""
+    nodes = _collapse(nodes) or None
+    attrnames = _collapse(attrnames) or None
+    return call("getattrstable", locals())
+
+
+def get_layer_stats(network: ThreadleName, layername: str):
+    """Return summary statistics over the edge values of a valued layer."""
+    return call("getlayerstats", locals())
+
+
+def get_alter_details(
+    network: ThreadleName,
+    nodes: Union[str, list[NodeId], tuple[NodeId, ...]],
+    layernames: LayerNames = None,
+    direction: Direction = "out",
+    attrname: Optional[str] = None,
+    cond: Optional[Condition] = None,
+    attrvalue: Any = None,
+):
+    """Return a table (dict of columns) of the alters of each ego node, optionally filtered by an attribute."""
+    _check(direction, DIRECTIONS, "direction")
+    if cond is not None:
+        _check(cond, CONDITIONS, "cond")
+    nodes = _collapse(nodes)
+    layernames = _collapse(layernames) or None
+    return call("getalterdetails", locals())
+
+
+# ============================================
+# Meta (Threadle 1.3)
+# ============================================
+def about():
+    """Return version and project information about the running Threadle backend and threadlepy."""
+    from . import __version__
+
+    info = call("about", locals())
+    if isinstance(info, dict):
+        info = dict(info, ThreadlepyVersion=__version__)
+    return info
+
+
+def system_info():
+    """Return details about the system Threadle runs on (cores, OS, .NET, maxthreads)."""
+    return call("systeminfo", locals())
 
 
 def _install_threadle_r_aliases() -> None:
