@@ -50,3 +50,9 @@ For more examples and workflows, see:
 ```text
 docs/threadlepy_tutorial.ipynb
 ```
+
+## Releasing
+
+Packages are built and checked with GitHub Actions. Publishing a GitHub Release
+uploads them to PyPI using Trusted Publishing. See [the release guide](docs/releasing.md)
+for the one-time setup and release steps.

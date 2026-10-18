@@ -2,6 +2,25 @@
 
 ## Unreleased
 
+## 0.2.0 - 2026-10-18
+
+### Breaking changes
+
+- `shortest_paths()` now wraps Threadle 1.3's `shortestpaths`, which returns exact
+  distances for given node pairs: `shortest_paths(network, node1ids, node2ids,
+  layernames=None, returnpaths=False)`. Migrate calls expecting an
+  attribute-category result network to `shortest_paths_attributes()`.
+- `rwdistances()` is removed; Threadle no longer has the command. Use `rwfpt()`
+  instead.
+
+### Features, fixes, and tooling
+
+- Added GitHub Actions package builds and PyPI Trusted Publishing on published
+  GitHub Releases, with release-tag and package-version checks.
+- Added installed-wheel compatibility checks on Linux, Windows, and macOS with
+  Python 3.9, 3.12, and 3.14, covering bundled resources and example-file copying.
+- Documented the one-time PyPI publisher setup and subsequent release steps in
+  `docs/releasing.md`.
 - The Threadle process is now read through background threads instead of `select()`,
   so threadlepy also works on Windows. The backend's stderr is drained continuously
   (so a chatty backend can no longer stall on a full pipe) and its last lines are shown
@@ -17,12 +36,6 @@
   returned as the result of the next command.
 - Arguments that take several node ids or names (`nodes`, `layernames`, ...) also
   accept a single value, e.g. `set_attrs(net, "x", nodes=5, attrvalue=1)`.
-- **Breaking change**: `shortest_paths()` now wraps Threadle 1.3's `shortestpaths`,
-  which returns exact distances for given node pairs: `shortest_paths(network,
-  node1ids, node2ids, layernames=None, returnpaths=False)`. The previous
-  attribute-category result network is now `shortest_paths_attributes()`.
-- **Breaking change**: `rwdistances()` is removed; Threadle no longer has the
-  command. Use `rwfpt()` instead.
 - `export()`: `layername` is optional (it is only required for gexf), and `format` is
   checked against gexf, graphml and pajek.
 - New wrappers for the remaining Threadle 1.3 commands, matching threadleR 0.6.0:
